@@ -85,4 +85,52 @@ object Polymorphism extends App {
   val rectangle = new Rectangle(4, 6)
   println(s"Circle area: ${circle.area()}")         // Output: Circle area: 78.53981633974483
   println(s"Rectangle area: ${rectangle.area()}")   // Output: Rectangle area: 24.0
+
+  // Constructor Overloading Example
+  class Employee(val name: String, val age: Int) {
+    var salary: Double = 0.0
+
+    // Secondary constructor
+    def this(name: String, age: Int, salary: Double) = {
+      this(name, age)
+      this.salary = salary
+    }
+
+    def displayDetails(): Unit = {
+      println(s"Employee Name: $name, Age: $age, Salary: $$${salary}")
+    }
+  }
+
+  println("\nConstructor Overloading Example:")
+  val emp1 = new Employee("John", 30)
+  val emp2 = new Employee("Jane", 28, 50000.0)
+  emp1.displayDetails()  // Output: Employee Name: John, Age: 30, Salary: $0.0
+  emp2.displayDetails()  // Output: Employee Name: Jane, Age: 28, Salary: $50000.0
+
+  // Operator Overloading Example
+  class Complex(val real: Int, val imaginary: Int) {
+
+    // Overloading + operator for Complex numbers
+    def +(that: Complex): Complex = {
+      new Complex(this.real + that.real, this.imaginary + that.imaginary)
+    }
+
+    // Overloading * operator for Complex numbers
+    def *(that: Complex): Complex = {
+      new Complex(
+        this.real * that.real - this.imaginary * that.imaginary,
+        this.real * that.imaginary + this.imaginary * that.real
+      )
+    }
+
+    override def toString: String = s"$real + ${imaginary}i"
+  }
+
+  println("\nOperator Overloading Example:")
+  val complex1 = new Complex(2, 3)
+  val complex2 = new Complex(4, 5)
+  val sum = complex1 + complex2
+  val product = complex1 * complex2
+  println(s"Sum of complex numbers: $sum")         // Output: Sum of complex numbers: 6 + 8i
+  println(s"Product of complex numbers: $product") // Output: Product of complex numbers: -7 + 22i
 }
