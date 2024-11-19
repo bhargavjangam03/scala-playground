@@ -1,4 +1,4 @@
-package models
+package models.request
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -8,7 +8,6 @@ case class Employee(employeeId: Option[Long],
                     organisation: String,
                     building: String,
                     email: String,
-                    employeeType: String,
                     contactNo: String)
 
 object Employee {
@@ -19,7 +18,6 @@ object Employee {
       (JsPath \ "organisation").read[String] and
       (JsPath \ "building").read[String] and
       (JsPath \ "email").read[String] and
-      (JsPath \ "employeeType").read[String] and
       (JsPath \ "contactNo").read[String]
     )(Employee.apply _)
 

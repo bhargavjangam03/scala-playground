@@ -1,7 +1,7 @@
 package repositories
 
-import models.Employee
 import models.db.EmployeeTable
+import models.request.Employee
 import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
 
@@ -19,27 +19,44 @@ class EmployeeRepository @Inject()(dbConfigProvider: DatabaseConfigProvider)(imp
   private val employees = TableQuery[EmployeeTable]
 
   //  def create(Employee: Employee): Future[Int] = db.run(Employees += Employee)
-  def create(employee: Employee): Future[Long] = {
+  def create(employee: Employee): Future[Employee] = {
     val insertQueryThenReturnId = employees
-      .map(v => (v.employeeName, v.organisation, v.building, v.email, v.employeeType, v.contactNo))
-      .returning(employees.map(_.employeeId))  // Ensure this returns a Long value
+      .map(v => (v.employeeName, v.organisation, v.building, v.email, v.contactNo))
+      .returning(employees.map(_.employeeId))  // Get the auto-generated employeeId
 
-    // Execute the query and return the inserted visitor's ID
+    // Execute the insert query and then fetch the inserted employee object
     db.run(insertQueryThenReturnId += (
       employee.employeeName,
       employee.organisation,
       employee.building,
       employee.email,
-      employee.employeeType,
       employee.contactNo
-    )).map(_.head)  // Extract the first element from the result (the ID)
+    )).flatMap { insertedId =>
+      // After inserting, fetch the full Employee object
+      val fetchedEmployeeQuery = employees.filter(_.employeeId === insertedId).result.headOption
+
+      // Fetch the employee based on the inserted ID
+      db.run(fetchedEmployeeQuery).map {
+        case Some(fetchedEmployee) => fetchedEmployee
+        case None => throw new Exception("Employee not found after insertion")
+      }
+    }
   }
+
   def isEmployeeEmailValid(email: String): Future[Boolean] = {
     db.run(employees.filter(_.email === email).exists.result)
   }
 
   def list(): Future[Seq[Employee]] = db.run(employees.result)
+
   def getById(id: Long): Future[Option[Employee]] = db.run(employees.filter(_.employeeId === id).result.headOption)
-//  def update(id: String, updatedEmployee: Employee): Future[Int] = db.run(Employees.filter(_.EmployeeId === id).update(updatedEmployee))
-//  def delete(id: String): Future[Int] = db.run(Employees.filter(_.EmployeeId === id).delete)
+
+  def deleteEmployee(employeeId: Long): Future[Boolean] = {
+    val query = employees.filter(_.employeeId === employeeId).delete
+    db.run(query).map {
+      case 0 => false
+      case _ => true
+    }
+  }
+
 }

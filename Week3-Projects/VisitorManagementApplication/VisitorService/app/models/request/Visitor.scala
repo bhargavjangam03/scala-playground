@@ -1,4 +1,4 @@
-package models
+package models.request
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -16,7 +16,7 @@ case class Visitor(
                     contactNumber: String,
                     checkInTime: String = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),  // Default to current time
                     checkOutTime: Option[String] = None,
-                    status: String = "Waiting",  // Default to "Checked In"
+                    status: String = "pending",
                   )
 
 // JSON reads and writes for Visitor
@@ -31,7 +31,7 @@ object Visitor {
       (JsPath \ "contactNumber").read[String] and
       (JsPath \ "checkInTime").readWithDefault[String](LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)) and
       (JsPath \ "checkOutTime").readNullable[String] and
-      (JsPath \ "status").readWithDefault[String]("Checked In")
+      (JsPath \ "status").readWithDefault[String]("pending")
     )(Visitor.apply _)
 
   implicit val visitorWrites: Writes[Visitor] = Json.writes[Visitor]

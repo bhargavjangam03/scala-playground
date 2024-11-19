@@ -1,7 +1,7 @@
 package repositories
 
-import models.Visitor
 import models.db.VisitorTable
+import models.request.Visitor
 import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.JdbcProfile
 
@@ -15,6 +15,7 @@ class VisitorRepository @Inject()(dbConfigProvider: DatabaseConfigProvider)(impl
   private val dbConfig = dbConfigProvider.get[JdbcProfile]
   import dbConfig._
   import profile.api._
+
 
   private val visitors = TableQuery[VisitorTable]
 
@@ -52,10 +53,10 @@ class VisitorRepository @Inject()(dbConfigProvider: DatabaseConfigProvider)(impl
 
   def updateCheckOut(visitorId: Long): Future[Option[Visitor]] = {
     val currentTime = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)  // Current time for checkOutTime
-    val defaultStatus = "Checked Out"  // Default status
+    val defaultStatus = "checked-out"  // Default status
 
     // Construct the update query
-    val updateQuery = visitors.filter(visitor => visitor.visitorId === visitorId && visitor.status === "Checked In")
+    val updateQuery = visitors.filter(visitor => visitor.visitorId === visitorId && visitor.status === "checked-in")
       .map(v => (v.checkOutTime, v.status))
       .update((Some(currentTime), defaultStatus))  // Set checkOutTime to current time and status to "Checked Out"
 

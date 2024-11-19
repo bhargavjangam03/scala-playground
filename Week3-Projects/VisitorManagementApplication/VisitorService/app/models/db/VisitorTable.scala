@@ -1,6 +1,6 @@
 package models.db
 
-import models.Visitor
+import models.request.Visitor
 import slick.jdbc.MySQLProfile.api._
 
 class VisitorTable(tag: Tag) extends Table[Visitor](tag, "visitors") {

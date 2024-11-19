@@ -15,6 +15,7 @@ class VisitorIdentityProofRepository @Inject()(dbConfigProvider: DatabaseConfigP
   import dbConfig._
   import profile.api._
 
+
   private val visitorsIdentity = TableQuery[VisitorIdentityProofTable]
 
   def create(visitorIdentity: VisitorIdentityProof): Future[Long] = {
