@@ -1,6 +1,6 @@
 package services
 
-import models.request.Visitor
+import models.request.KafkaMessage
 import play.api.libs.json._
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import java.util.Properties
@@ -16,9 +16,9 @@ class KafkaProducerService @Inject()() {
 
   private val producer = new KafkaProducer[String, String](props)
 
-  def sendToKafka(visitor: Visitor): Unit = {
+  def sendToKafka(kafkaRequest: KafkaMessage): Unit = {
     // Serialize the Visitor object to JSON
-    val jsonMessage: String = Json.stringify(Json.toJson(visitor))
+    val jsonMessage: String = Json.stringify(Json.toJson(kafkaRequest))
 
     // Send the message to Kafka
     val record = new ProducerRecord[String, String]("waverock-visitor", "key", jsonMessage)

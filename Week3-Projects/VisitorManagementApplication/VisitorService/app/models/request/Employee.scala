@@ -3,7 +3,7 @@ package models.request
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-case class Employee(employeeId: Option[Long],
+case class Employee(employeeId: Option[Int],
                     employeeName: String,
                     organisation: String,
                     building: String,
@@ -12,14 +12,7 @@ case class Employee(employeeId: Option[Long],
 
 object Employee {
   // Reads for deserialization
-  implicit val employeeReads: Reads[Employee] = (
-    (JsPath \ "employeeId").readNullable[Long] and
-      (JsPath \ "employeeName").read[String] and
-      (JsPath \ "organisation").read[String] and
-      (JsPath \ "building").read[String] and
-      (JsPath \ "email").read[String] and
-      (JsPath \ "contactNo").read[String]
-    )(Employee.apply _)
+  implicit val employeeReads: Reads[Employee] = Json.reads[Employee]
 
   // Writes for serialization
   implicit val employeeWrites: Writes[Employee] = Json.writes[Employee]

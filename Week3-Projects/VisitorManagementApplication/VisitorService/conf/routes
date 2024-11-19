@@ -14,6 +14,8 @@ POST    /api/visitor/checkout/:id           controllers.VisitorController.checkO
 GET     /api/visitor/approve/:id                    controllers.VisitorController.approveVisitor(id: Long)
 GET     /api/visitor/reject/:id                    controllers.VisitorController.rejectVisitor(id: Long)
 GET     /api/visitors                       controllers.VisitorController.list()
+POST    /send                               controllers.VisitorController.test
+
 
 # Employee Routes
 GET    /api/employees          controllers.EmployeeController.list()

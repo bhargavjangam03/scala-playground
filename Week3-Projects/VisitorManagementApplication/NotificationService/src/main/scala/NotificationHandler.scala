@@ -1,4 +1,4 @@
-import model.Visitor
+import model.KafkaMessage
 import akka.actor.Actor
 import akka.actor.ActorRef
 import io.circe.generic.auto.exportDecoder
@@ -9,19 +9,19 @@ class NotificationHandler(itSupportProcessor: ActorRef, hostProcessor: ActorRef,
   override def receive: Receive = {
     case message: String =>
       // Deserialize the message into a Visitor object
-      decode[Visitor](message) match {
-        case Right(visitor) =>
-          visitor.status match {
+      decode[KafkaMessage](message) match {
+        case Right(msg) =>
+          msg.visitorStatus match {
             case "pending" =>
-              hostProcessor ! visitor
-              securityProcessor ! visitor
+              hostProcessor ! msg
+              securityProcessor ! msg
             case "checked-in" | "checked-out" | "rejected" =>
               // Notify IT Support, Host, and Security
-              itSupportProcessor ! visitor
-              hostProcessor ! visitor
-              securityProcessor ! visitor
+              itSupportProcessor ! msg
+              hostProcessor ! msg
+              securityProcessor ! msg
             case _ =>
-              println(s"Unknown status: ${visitor.status}")
+              println(s"Unknown status: ${msg.visitorStatus}")
           }
 
         case Left(error) =>

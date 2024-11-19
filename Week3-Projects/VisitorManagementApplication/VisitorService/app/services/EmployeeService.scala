@@ -16,9 +16,11 @@ class EmployeeService @Inject()(employeeRepository: EmployeeRepository) {
 
   def list(): Future[Seq[Employee]] = employeeRepository.list()
 
-  def get(id: Long): Future[Option[Employee]] = employeeRepository.getById(id)
+  def get(id: Int): Future[Option[Employee]] = employeeRepository.getById(id)
 
-  def deleteEmployee(employeeId: Long): Future[Boolean] = {
+  def deleteEmployee(employeeId: Int): Future[Boolean] = {
     employeeRepository.deleteEmployee(employeeId)
   }
+  def getEmployeeByEmail(mail: String): Future[Option[Employee]] = employeeRepository.getEmployeeByMail(mail)
+
 }

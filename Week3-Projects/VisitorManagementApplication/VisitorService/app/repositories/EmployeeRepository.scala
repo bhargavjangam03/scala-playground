@@ -49,9 +49,12 @@ class EmployeeRepository @Inject()(dbConfigProvider: DatabaseConfigProvider)(imp
 
   def list(): Future[Seq[Employee]] = db.run(employees.result)
 
-  def getById(id: Long): Future[Option[Employee]] = db.run(employees.filter(_.employeeId === id).result.headOption)
+  def getById(id: Int): Future[Option[Employee]] = db.run(employees.filter(_.employeeId === id).result.headOption)
 
-  def deleteEmployee(employeeId: Long): Future[Boolean] = {
+  def getEmployeeByMail(mail: String): Future[Option[Employee]] = db.run(employees.filter(_.email === mail).result.headOption)
+
+
+  def deleteEmployee(employeeId: Int): Future[Boolean] = {
     val query = employees.filter(_.employeeId === employeeId).delete
     db.run(query).map {
       case 0 => false

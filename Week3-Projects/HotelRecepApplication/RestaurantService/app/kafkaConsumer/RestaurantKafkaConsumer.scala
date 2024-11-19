@@ -1,6 +1,5 @@
 package kafkaConsumer
 
-import com.fasterxml.jackson.databind.deser.std.StringDeserializer
 import models.{Guest, GuestInfo}
 import org.apache.pekko.Done
 import org.apache.pekko.actor.CoordinatedShutdown
@@ -18,6 +17,7 @@ import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success}
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import models.Menu
+import org.apache.kafka.common.serialization.StringDeserializer
 import utils.MailUtil.composeAndSendEmail
 
 @Singleton

@@ -11,7 +11,7 @@ class GuestTable(tag: Tag) extends Table[Guest](tag, "Guest") {
   def phoneNumber = column[String]("phone_number")
   def email = column[String]("email")
   def address = column[String]("address")
-  def status = column[String]("guest_status")
+  def status = column[String]("status")
 
   def * = (guestId, bookingId, name, roomNo, phoneNumber, email, address, status) <> ((Guest.apply _).tupled, Guest.unapply)
 }

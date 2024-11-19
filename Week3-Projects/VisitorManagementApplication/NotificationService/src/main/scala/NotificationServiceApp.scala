@@ -18,14 +18,20 @@ object NotificationServiceApp extends App {
 
   val notificationHandler = system.actorOf(Props(new NotificationHandler(itSupportProcessor, hostProcessor, securityProcessor)), "notificationHandler")
 
-  // Kafka consumer settings
   val consumerSettings = ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
     .withBootstrapServers("localhost:9092")
-    .withGroupId("visitor-notification-group")
+    .withGroupId("visitor-group")
     .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+    .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true")
+
 
   Consumer.plainSource(consumerSettings, Subscriptions.topics("waverock-visitor"))
-    .runWith(Sink.foreach(message => notificationHandler ! message))
+    .map(record=>record.value())
+    .runWith(Sink.foreach(message => {
+      println(s"Received message: ${message}")
+      notificationHandler ! message
+    }))
+
 
   println("Listeners are active and consuming messages...")
 }

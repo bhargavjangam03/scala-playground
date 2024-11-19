@@ -18,10 +18,10 @@ class VisitorIdentityProofRepository @Inject()(dbConfigProvider: DatabaseConfigP
 
   private val visitorsIdentity = TableQuery[VisitorIdentityProofTable]
 
-  def create(visitorIdentity: VisitorIdentityProof): Future[Long] = {
+  def create(visitorIdentity: VisitorIdentityProof): Future[Int] = {
     val insertQueryThenReturnId = visitorsIdentity
       .map(v => (v.visitorId, v.identityProof))
-      .returning(visitorsIdentity.map(_.id))  // Ensure this returns a Long value
+      .returning(visitorsIdentity.map(_.id))  // Ensure this returns a Int value
 
     // Execute the query and return the inserted visitor's ID
     db.run(insertQueryThenReturnId += (
@@ -32,6 +32,6 @@ class VisitorIdentityProofRepository @Inject()(dbConfigProvider: DatabaseConfigP
 
   def list(): Future[Seq[VisitorIdentityProof]] = db.run(visitorsIdentity.result)
 
-  def getById(id: Long): Future[Option[VisitorIdentityProof]] = db.run(visitorsIdentity.filter(_.visitorId === id).result.headOption)
+  def getById(id: Int): Future[Option[VisitorIdentityProof]] = db.run(visitorsIdentity.filter(_.visitorId === id).result.headOption)
 }
 

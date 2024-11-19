@@ -1,13 +1,13 @@
-import model.Visitor
+import model.KafkaMessage
 import akka.actor.Actor
 
 class ITSupportProcessor extends Actor {
   override def receive: Receive = {
-    case visitor: Visitor =>
-      val name = visitor.name
-      val email = visitor.email
+    case msg: KafkaMessage =>
+      val name = msg.visitorName
+      val email = msg.visitorMail
 
-      visitor.status match {
+      msg.visitorStatus match {
         case "checked-in" =>
           // Define Wi-Fi access email content
           val subject = s"Wi-Fi Access Details for $name"
@@ -71,26 +71,25 @@ class ITSupportProcessor extends Actor {
 
 
         case _ =>
-          println(s"Unknown visitor status: ${visitor.status}")
+          println(s"Unknown visitor status: ${msg.visitorStatus}")
       }
   }
 }
 
 class HostProcessor extends Actor {
   override def receive: Receive = {
-    case visitor: Visitor =>
-      val name = visitor.name
-      val hostName = visitor.hostName
-      val contactNumber = visitor.contactNumber
-      val hostMail = visitor.hostMail
-      val building = visitor.building
+    case msg: KafkaMessage =>
+      val name = msg.visitorName
+      val hostName = msg.employeeName
+      val contactNumber = msg.visitorContactNumber
+      val hostMail = msg.employeeMail
 
-      visitor.status match {
+      msg.visitorStatus match {
         case "pending" =>
           // Define visitor arrival notification for approval
           val subject = "Visitor Arrival Notification"
-          val approvalLink = s"http://localhost:9000/api/visitor/approve/${visitor.visitorId.get}"
-          val rejectionLink = s"http://localhost:9000/api/visitor/reject/${visitor.visitorId.get}"
+          val approvalLink = s"http://localhost:9000/api/visitor/approve/${msg.visitorId}"
+          val rejectionLink = s"http://localhost:9000/api/visitor/reject/${msg.visitorId}"
           val body =
             s"""
                |Dear $hostName,
@@ -98,7 +97,6 @@ class HostProcessor extends Actor {
                |Your visitor, $name, has arrived.
                |
                |Contact Number: $contactNumber
-               |Building: $building
                |
                |To allow entry, click here: $approvalLink
                |To deny entry, click here: $rejectionLink
@@ -165,29 +163,29 @@ class HostProcessor extends Actor {
           println(s"Visitor entry rejection confirmation sent to host at $hostMail for visitor $name.")
 
         case _ =>
-          println(s"Unknown visitor status: ${visitor.status}")
+          println(s"Unknown visitor status: ${msg.visitorStatus}")
       }
   }
 }
 
 class SecurityProcessor extends Actor {
   override def receive: Receive = {
-    case visitor: Visitor =>
-      visitor.status match {
+    case msg: KafkaMessage =>
+      msg.visitorStatus match {
         case "checked-in" =>
-          println(s"Security Team notified: Visitor ${visitor.name} has checked in.")
+          println(s"Security Team notified: Visitor ${msg.visitorName} has checked in.")
 
         case "checked-out" =>
-          println(s"Security Team notified: Visitor ${visitor.name} has checked out.")
+          println(s"Security Team notified: Visitor ${msg.visitorName} has checked out.")
 
         case "pending" =>
-          println(s"Security Team notified: Visitor ${visitor.name} is awaiting host confirmation.")
+          println(s"Security Team notified: Visitor ${msg.visitorName}} is awaiting host confirmation.")
 
         case "rejected" =>
-          println(s"Security Team notified: Visitor ${visitor.name} has been rejected.")
+          println(s"Security Team notified: Visitor ${msg.visitorName} has been rejected.")
 
         case _ =>
-          println(s"Unknown visitor status: ${visitor.status}")
+          println(s"Unknown visitor status: ${msg.visitorStatus}")
       }
   }
 }

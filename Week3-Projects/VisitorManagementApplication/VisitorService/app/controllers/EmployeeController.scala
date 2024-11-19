@@ -33,14 +33,14 @@ class EmployeeController @Inject()(
     employeeService.list().map(employees => Ok(Json.toJson(employees)))
   }
 
-  def getEmployeeDetails(EmployeeId: Long): Action[AnyContent] = Action.async{
+  def getEmployeeDetails(EmployeeId: Int): Action[AnyContent] = Action.async{
     employeeService.get(EmployeeId).map {
       case Some(employee) => Ok(Json.toJson(employee))
       case None => NotFound(Json.obj("message" -> s"Employee with id $EmployeeId not found"))
     }
   }
 
-  def deleteEmployee(employeeId: Long): Action[AnyContent] = Action.async {
+  def deleteEmployee(employeeId: Int): Action[AnyContent] = Action.async {
     employeeService.deleteEmployee(employeeId).map {
       case true => Ok(s"Employee with ID $employeeId deleted successfully.")
       case false => NotFound(s"Invalid employee ID: $employeeId.")
