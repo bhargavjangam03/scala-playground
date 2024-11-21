@@ -3,7 +3,7 @@ package models.db
 import models.request.Visitor
 import slick.jdbc.MySQLProfile.api._
 
-class VisitorTable(tag: Tag) extends Table[Visitor](tag, "visitors") {
+class VisitorTable(tag: Tag) extends Table[Visitor](tag, "visitor") {
   def visitorId = column[Option[Int]]("visitor_id", O.PrimaryKey, O.AutoInc)
   def name = column[String]("name")
   def email = column[String]("email")
