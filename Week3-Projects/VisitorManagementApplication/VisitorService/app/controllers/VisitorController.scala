@@ -140,26 +140,26 @@ class VisitorController @Inject()(
 
 
   def approveVisitor(visitorId: Int): Action[AnyContent] = Action.async {
-
-    visitorLogService.updateVisitorLogStatus(visitorId,"rejected").map {
-      case true => Ok("Visitor approved successfully.")
-      case false => InternalServerError("Failed to check out the visitor.")
+    visitorLogService.updateVisitorLogStatus(visitorId, "approved").map {
+      case Some(_) => Ok("Visitor approved successfully.")
+      case None => InternalServerError("Failed to approve the visitor.")
     }
   }
 
   def rejectVisitor(visitorId: Int): Action[AnyContent] = Action.async {
-    visitorLogService.updateVisitorLogStatus(visitorId,"rejected").map {
-      case true => Ok("Visitor rejected.")
-      case false => InternalServerError("Failed to check out the visitor.")
+    visitorLogService.updateVisitorLogStatus(visitorId, "rejected").map {
+      case Some(_) => Ok("Visitor rejected successfully.")
+      case None => InternalServerError("Failed to reject the visitor.")
     }
   }
 
   def checkOutVisitor(visitorId: Int): Action[AnyContent] = Action.async {
     visitorLogService.updateCheckOut(visitorId).map {
-      case true => Ok("Visitor checked out successfully.")
-      case false => InternalServerError("Failed to check out the visitor.")
+      case Some(_) => Ok("Visitor checked out successfully.")
+      case None => InternalServerError("Failed to check out the visitor.")
     }
   }
+
 
   def list(): Action[AnyContent] = Action.async{
     visitorService.list().map(visitors => Ok(Json.toJson(visitors)))

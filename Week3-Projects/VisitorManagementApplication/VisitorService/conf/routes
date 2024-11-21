@@ -10,17 +10,16 @@ GET     /                           controllers.HomeController.index()
 
 # Visitor Management Routes
 POST    /api/visitor/checkin                controllers.VisitorController.checkInVisitor()
-POST    /api/visitor/checkout/:id           controllers.VisitorController.checkOutVisitor(id: Long)
-GET     /api/visitor/approve/:id                    controllers.VisitorController.approveVisitor(id: Long)
-GET     /api/visitor/reject/:id                    controllers.VisitorController.rejectVisitor(id: Long)
+POST    /api/visitor/checkout/:id           controllers.VisitorController.checkOutVisitor(id: Int)
+GET     /api/visitor/approve/:id                    controllers.VisitorController.approveVisitor(id: Int)
+GET     /api/visitor/reject/:id                    controllers.VisitorController.rejectVisitor(id: Int)
 GET     /api/visitors                       controllers.VisitorController.list()
-POST    /send                               controllers.VisitorController.test
 
 
 # Employee Routes
 GET    /api/employees          controllers.EmployeeController.list()
 POST    /api/employee          controllers.EmployeeController.addEmployee()
-GET     /api/employee/:id       controllers.EmployeeController.getEmployeeDetails(id: Long)
+GET     /api/employee/:id       controllers.EmployeeController.getEmployeeDetails(id: Int)
 
 # Assets
 #GET     /assets/*file                     controllers.Assets.versioned(path="/public", file: Asset)

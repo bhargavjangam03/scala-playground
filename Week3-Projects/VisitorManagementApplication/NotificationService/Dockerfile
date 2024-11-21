@@ -4,8 +4,7 @@ FROM hseeberger/scala-sbt:11.0.13_1.6.1_2.13.7 as build
 WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY . /app
-# Copy the .env file to the container
-COPY .env /app/.env
+
 # Compile and package the application
 RUN sbt clean compile stage
 # Use the OpenJDK image for running the application
