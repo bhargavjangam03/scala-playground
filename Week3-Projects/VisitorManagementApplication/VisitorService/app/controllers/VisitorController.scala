@@ -123,20 +123,20 @@ class VisitorController @Inject()(
 
 
 
-  def test() : Action[AnyContent] = Action.async {
-    // Create a sample Visitor object
-    val sample = VisitorLog(
-      visitorId = 123,
-      employeeId = 456,
-      checkInTime = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
-      status = "pending"
-    )
-
-    // Send the Visitor object to Kafka asynchronously and return a Future
-    kafkaProducerService.sendToKafka(sample)
-      // Once the message is successfully sent to Kafka, return the success response
-    Future.successful(Ok("Visitor approved successfully."))
-  }
+//  def test() : Action[AnyContent] = Action.async {
+//    // Create a sample Visitor object
+//    val sample = VisitorLog(
+//      visitorId = 123,
+//      employeeId = 456,
+//      checkInTime = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
+//      status = "pending"
+//    )
+//
+//    // Send the Visitor object to Kafka asynchronously and return a Future
+//    kafkaProducerService.sendToKafka(sample)
+//      // Once the message is successfully sent to Kafka, return the success response
+//    Future.successful(Ok("Visitor approved successfully."))
+//  }
 
 
   def approveVisitor(visitorId: Int): Action[AnyContent] = Action.async {
