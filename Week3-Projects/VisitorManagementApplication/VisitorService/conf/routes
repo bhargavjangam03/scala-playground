@@ -21,7 +21,7 @@ GET    /employee          controllers.EmployeeController.list()
 POST    /employee          controllers.EmployeeController.addEmployee()
 GET     /employee/:id       controllers.EmployeeController.getEmployeeDetails(id: Int)
 DELETE  /employee/:id       controllers.EmployeeController.deleteEmployee(id: Int)
-PATCH   /employee/:id       controllers.EmployeeController.updateEmployee(id: Int)
+PUT   /employee/:id       controllers.EmployeeController.updateEmployee(id: Int)
 
 # Login Routes
 POST    /login                controllers.AuthController.login

@@ -8,7 +8,7 @@ import slick.jdbc.MySQLProfile.api._
 
 class MenuTable(tag: Tag) extends Table[Menu](tag, "menu") {
 
-  def id = column[Int]("id", O.PrimaryKey)
+  def id = column[Option[Int]]("id", O.PrimaryKey,O.AutoInc)
   def foodItem = column[String]("food_item")
   def foodType = column[String]("food_type")
   def price = column[Double]("price")

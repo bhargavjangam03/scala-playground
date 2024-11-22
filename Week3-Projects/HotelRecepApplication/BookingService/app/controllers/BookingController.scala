@@ -140,7 +140,12 @@ def checkOut: Action[JsValue] = Action.async(parse.json) { request =>
     }
   }
 
-
+  def completePayment(bookingId: Int): Action[AnyContent] = Action.async {
+    bookingInfoService.completePayment(bookingId).map {
+      case 1 => Ok(Json.obj("message" -> s"Booking with ID $bookingId is now completed"))
+      case 0 => NotFound(Json.obj("error" -> s"Booking with ID $bookingId not found"))
+    }
+  }
 
 }
 

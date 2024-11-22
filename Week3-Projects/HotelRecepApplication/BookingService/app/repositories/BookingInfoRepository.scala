@@ -47,7 +47,7 @@ class BookingInfoRepository @Inject()(dbConfigProvider: DatabaseConfigProvider)(
   }
 
   // Method to get all bookings for a specific room
-  def getBookingsByRoomId(roomNo: Int): Future[Seq[BookingInfo]] = db.run {
+  def getBookingsByRoomNo(roomNo: Int): Future[Seq[BookingInfo]] = db.run {
     bookings.filter(_.roomNo === roomNo).result
   }
 
@@ -66,6 +66,10 @@ class BookingInfoRepository @Inject()(dbConfigProvider: DatabaseConfigProvider)(
     bookings.filter(_.bookingId === bookingId)
       .map(b => (b.roomNo, b.startDate, b.endDate, b.totalAmount, b.paymentStatus))
       .update((updatedBooking.roomNo, updatedBooking.startDate, updatedBooking.endDate, updatedBooking.totalAmount, updatedBooking.paymentStatus))
+  }
+  // Method to mark a booking as completed
+  def completePayment(bookingId: Int): Future[Int] = db.run {
+    bookings.filter(_.bookingId === bookingId).map(_.paymentStatus).update("completed")
   }
 }
 

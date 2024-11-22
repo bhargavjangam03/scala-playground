@@ -7,16 +7,23 @@
 GET     /                           controllers.HomeController.index()
 
 POST   /booking/checkOut   controllers.BookingController.checkOut
-POST   /booking/checkIn             controllers.BookingController.checkIn()
-
-POST   /room            controllers.RoomController.addRoom()
-GET   /rooms/available/:roomType    controllers.RoomController.getAvailableRoomsByType(roomType: String)
+POST   /booking/checkIn    controllers.BookingController.checkIn()
+PATCH /booking/:bookingId/complete controllers.BookingController.completePayment(bookingId: Int)
 
 
-GET     /guests/active               controllers.GuestController.getActiveGuests()
+POST   /room                controllers.RoomController.addRoom()
+GET    /room/available/:roomType    controllers.RoomController.getAvailableRoomsByType(roomType: String)
+# Update Room by Room Number
+PUT    /room/:roomNo         controllers.RoomController.updateRoomByRoomNo(roomNo: Int)
+# Delete Room by Room Number
+DELETE /room/:roomNo         controllers.RoomController.deleteRoom(roomNo: Int)
+
+# Change Room Status (occupied or not) by Room Number
+
+GET     /guests/active       controllers.GuestController.getActiveGuests()
 
 # Login Routes
-POST    /login                controllers.AuthController.login
+POST    /login               controllers.AuthController.login
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+GET     /assets/*file        controllers.Assets.versioned(path="/public", file: Asset)

@@ -31,8 +31,8 @@ class BookingInfoService @Inject()(bookingInfoRepository: BookingInfoRepository)
   }
 
   // Method to get all bookings for a specific room
-  def getBookingsByRoomId(roomId: Int): Future[Seq[BookingInfo]] = {
-    bookingInfoRepository.getBookingsByRoomId(roomId)
+  def getBookingsByRoomNo(roomId: Int): Future[Seq[BookingInfo]] = {
+    bookingInfoRepository.getBookingsByRoomNo(roomId)
   }
 
   // Method to update the payment status of a booking
@@ -49,6 +49,12 @@ class BookingInfoService @Inject()(bookingInfoRepository: BookingInfoRepository)
   def updateBookingDetails(bookingId: Int, updatedBooking: BookingInfo): Future[Int] = {
     bookingInfoRepository.updateBookingDetails(bookingId, updatedBooking)
   }
+
+  // Method to mark a booking as completed
+  def completePayment(bookingId: Int): Future[Int] = {
+    bookingInfoRepository.completePayment(bookingId)
+  }
+
 
 }
 

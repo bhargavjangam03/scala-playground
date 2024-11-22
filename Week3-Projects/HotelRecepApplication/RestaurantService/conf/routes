@@ -4,8 +4,15 @@
 # ~~~~
 
 # An example controller showing a sample home page
+
+POST    /menu           controllers.MenuController.addMenu()
 GET     /                           controllers.HomeController.index()
-POST     /menu                           controllers.MenuController.addMenu()
+GET    /menu?date=:date          controllers.MenuController.getFoodItemsByDate(date: String)
+GET    /menu                    controllers.MenuController.getAllMenuItems()
+GET    /menu?id=:id               controllers.MenuController.getMenuItemById(id: Int)
+PUT    /menu/:id              controllers.MenuController.updateMenuItem(id: Int)
+DELETE /menu/:id              controllers.MenuController.deleteMenuItem(id: Int)
+
 # Login Routes
 POST    /login                controllers.AuthController.login
 

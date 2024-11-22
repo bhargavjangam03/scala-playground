@@ -4,7 +4,7 @@ import play.api.libs.json.{Json, OFormat}
 
 import java.time.LocalDate
 
-case class Menu(id: Int, foodItem: String, foodType: String, price: Double, date: LocalDate)
+case class Menu(id: Option[Int], foodItem: String, foodType: String, price: Double, date: LocalDate)
 
 
 object Menu {
