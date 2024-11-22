@@ -14,7 +14,7 @@ object WifiServiceApp extends App {
   private val mailListener = system.actorOf(Props(new MailActor), "mailListener")
 
   private val consumerSettings = ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
-    .withBootstrapServers("localhost:9092")
+    .withBootstrapServers("10.128.0.2:9092")
     .withGroupId("wifi-listeners-group")
     .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
 

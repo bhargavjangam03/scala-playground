@@ -19,7 +19,7 @@ object NotificationServiceApp extends App {
   val notificationHandler = system.actorOf(Props(new NotificationHandler(itSupportProcessor, hostProcessor, securityProcessor)), "notificationHandler")
 
   val consumerSettings = ConsumerSettings(system, new StringDeserializer, new StringDeserializer)
-    .withBootstrapServers("localhost:9092")
+    .withBootstrapServers("10.128.0.2:9092")
     .withGroupId("visitor-group")
     .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
     .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true")
