@@ -9,17 +9,20 @@ GET     /                           controllers.HomeController.index()
 # This file defines all application routes (Higher priority routes first)
 
 # Visitor Management Routes
-POST    /api/visitor/checkin                controllers.VisitorController.checkInVisitor()
-POST    /api/visitor/checkout/:id           controllers.VisitorController.checkOutVisitor(id: Int)
-GET     /api/visitor/approve/:id                    controllers.VisitorController.approveVisitor(id: Int)
-GET     /api/visitor/reject/:id                    controllers.VisitorController.rejectVisitor(id: Int)
-GET     /api/visitors                       controllers.VisitorController.list()
+POST    /visitor/checkin                controllers.VisitorController.checkInVisitor()
+POST    /visitor/checkout/:id           controllers.VisitorController.checkOutVisitor(id: Int)
+GET     /visitor/approve/:id                    controllers.VisitorController.approveVisitor(id: Int)
+GET     /visitor/reject/:id                    controllers.VisitorController.rejectVisitor(id: Int)
+GET     /visitor                       controllers.VisitorController.list()
 
 
 # Employee Routes
-GET    /api/employees          controllers.EmployeeController.list()
-POST    /api/employee          controllers.EmployeeController.addEmployee()
-GET     /api/employee/:id       controllers.EmployeeController.getEmployeeDetails(id: Int)
+GET    /employee          controllers.EmployeeController.list()
+POST    /employee          controllers.EmployeeController.addEmployee()
+GET     /employee/:id       controllers.EmployeeController.getEmployeeDetails(id: Int)
+
+# Login Routes
+POST    /login                controllers.AuthController.login
 
 # Assets
 #GET     /assets/*file                     controllers.Assets.versioned(path="/public", file: Asset)
