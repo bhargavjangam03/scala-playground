@@ -26,7 +26,7 @@ class RestaurantKafkaConsumer @Inject()(menuService: MenuService, coordinatedShu
   logger.info("Starting RestaurantKafkaConsumer")
   implicit val GuestFormat: Format[Guest] = Json.format[Guest]
   private  val properties = new Properties()
-  properties.put("bootstrap.servers", "localhost:9092")
+  properties.put("bootstrap.servers", "10.128.0.2:9092")
   properties.put("group.id", s"restaurantService")
   properties.put("key.deserializer", classOf[StringDeserializer])
   properties.put("value.deserializer", classOf[StringDeserializer])
