@@ -25,94 +25,75 @@ class VisitorController @Inject()(
 
 
   def checkInVisitor(): Action[MultipartFormData[TemporaryFile]] = Action.async(parse.multipartFormData) { request =>
-    // Extracting form data fields
     val name = request.body.dataParts.get("name").flatMap(_.headOption).getOrElse("")
     val hostName = request.body.dataParts.get("hostName").flatMap(_.headOption).getOrElse("")
     val hostMail = request.body.dataParts.get("hostMail").flatMap(_.headOption).getOrElse("")
-    val building = request.body.dataParts.get("building").flatMap(_.headOption).getOrElse("")
     val email = request.body.dataParts.get("email").flatMap(_.headOption).getOrElse("")
     val contactNumber = request.body.dataParts.get("contactNumber").flatMap(_.headOption).getOrElse("")
 
-    // Check for missing required fields and return a BadRequest if any are missing
-    if (name.isEmpty || hostName.isEmpty || hostMail.isEmpty || building.isEmpty || email.isEmpty || contactNumber.isEmpty) {
+    if (name.isEmpty || hostName.isEmpty || hostMail.isEmpty || email.isEmpty || contactNumber.isEmpty) {
       Future.successful(BadRequest(Json.obj("message" -> "Missing required fields")))
     } else {
-      // Validate email format
       Validation.validateEmail(email) match {
         case Some(error) =>
-          // Return a BadRequest with error message if email validation fails
           Future.successful(BadRequest(Json.obj("message" -> error.message)))
         case None =>
           Validation.validateContactNumber(contactNumber) match {
             case Some(error) =>
-              // Return a BadRequest with error message if contact number validation fails
               Future.successful(BadRequest(Json.obj("message" -> error.message)))
             case None =>
               request.body.file("identityProof") match {
                 case Some(filePart) =>
-                  // Convert the uploaded file to a Blob (byte array)
-                  val file = filePart.ref
-                  val byteArray = java.nio.file.Files.readAllBytes(file.path)
+                  val filename = filePart.filename.toLowerCase
+                  if (!filename.endsWith(".png")) {
+                    Future.successful(BadRequest(Json.obj("message" -> "Only .png files are accepted as identity proof")))
+                  } else {
+                    val file = filePart.ref
+                    val byteArray = java.nio.file.Files.readAllBytes(file.path)
 
-                  // First, check if the hostMail exists as an employee
-                  employeeService.getEmployeeByEmail(hostMail).flatMap {
-                    case Some(employee) =>
-                      // Check if the visitor already exists in the database by email
-                      visitorService.getVisitorByEmail(email).flatMap {
-                        case Some(existingVisitor) =>
-                          // Visitor exists, log the check-in
-                          val visitorLog = VisitorLog(
-                            visitorId = existingVisitor.visitorId.get,
-                            employeeId = employee.employeeId.getOrElse(0),  // Use employeeId from hostMail
-                            checkInTime = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
-                            status = "pending"  // Set the status to "pending"
-                          )
-
-                          // Log the check-in entry
-                          visitorLogService.addVisitorLog(visitorLog).map { _ =>
-                            Ok(Json.toJson(s"Check-in logged successfully for $name. Waiting for $hostName confirmation."))
-                          }
-
-                        case None =>
-                          // Visitor does not exist, create a new visitor and store everything
-                          val newVisitor = Visitor(
-                            name = name,
-                            email = email,
-                            contactNumber = contactNumber,
-                          )
-
-                          // Proceed to create the visitor
-                          visitorService.checkIn(newVisitor).flatMap { createdVisitorId =>
-                            // Add the identity proof and log the check-in
-                            val visitorIdentity = VisitorIdentityProof(
-                              visitorId = createdVisitorId,
-                              identityProof = byteArray
-                            )
-
-                            // Create the visitor log
+                    employeeService.getEmployeeByEmail(hostMail).flatMap {
+                      case Some(employee) =>
+                        visitorService.getVisitorByEmail(email).flatMap {
+                          case Some(existingVisitor) =>
                             val visitorLog = VisitorLog(
-                              visitorId = createdVisitorId,
-                              employeeId = employee.employeeId.getOrElse(0),  // Use employeeId from hostMail
+                              visitorId = existingVisitor.visitorId.get,
+                              employeeId = employee.employeeId.getOrElse(0),
                               checkInTime = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
-                              status = "pending"  // Set the status to "pending"
+                              status = "pending"
                             )
-
-                            for {
-                              _ <- visitorService.addVisitorIdentity(visitorIdentity)
-                              _ <- visitorLogService.addVisitorLog(visitorLog)  // Add the log entry
-                            } yield {
-                              Ok(Json.toJson(s"Check-in and identity proof added successfully for $name. Waiting for $hostName confirmation."))
+                            visitorLogService.addVisitorLog(visitorLog).map { _ =>
+                              Ok(Json.toJson(s"Check-in logged successfully for $name. Waiting for $hostName confirmation."))
                             }
-                          }
-                      }
-
-                    case None =>
-                      // Host does not exist as an employee, return an error
-                      Future.successful(BadRequest(Json.obj("message" -> "Host not found in the system")))
+                          case None =>
+                            val newVisitor = Visitor(
+                              name = name,
+                              email = email,
+                              contactNumber = contactNumber,
+                            )
+                            visitorService.checkIn(newVisitor).flatMap { createdVisitorId =>
+                              val visitorIdentity = VisitorIdentityProof(
+                                visitorId = createdVisitorId,
+                                identityProof = byteArray
+                              )
+                              val visitorLog = VisitorLog(
+                                visitorId = createdVisitorId,
+                                employeeId = employee.employeeId.getOrElse(0),
+                                checkInTime = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
+                                status = "pending"
+                              )
+                              for {
+                                _ <- visitorService.addVisitorIdentity(visitorIdentity)
+                                _ <- visitorLogService.addVisitorLog(visitorLog)
+                              } yield {
+                                Ok(Json.toJson(s"Check-in and identity proof added successfully for $name. Waiting for $hostName confirmation."))
+                              }
+                            }
+                        }
+                      case None =>
+                        Future.successful(BadRequest(Json.obj("message" -> "Host not found in the system")))
+                    }
                   }
-
                 case None =>
-                  // Return a BadRequest if no identity proof file is provided
                   Future.successful(BadRequest(Json.obj("message" -> "Missing identity proof file")))
               }
           }
@@ -123,7 +104,7 @@ class VisitorController @Inject()(
 
 
 
-//  def test() : Action[AnyContent] = Action.async {
+  //  def test() : Action[AnyContent] = Action.async {
 //    // Create a sample Visitor object
 //    val sample = VisitorLog(
 //      visitorId = 123,

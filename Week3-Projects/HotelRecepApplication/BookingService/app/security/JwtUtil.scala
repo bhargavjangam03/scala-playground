@@ -8,7 +8,7 @@ import java.util.Date
 object JwtUtil {
   private val secretKey = "bhargav-jwt-key" // Store securely in environment variables
   private val algorithm = Algorithm.HMAC256(secretKey)
-  private val issuer = "play-name"
+  private val issuer = "booking-service"
 
   // Generate a JWT token
   def generateToken(userId: String, expirationMillis: Long = 3600000): String = {

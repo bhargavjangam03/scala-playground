@@ -25,13 +25,6 @@ class BookingController @Inject()(
                               )(implicit ec: ExecutionContext) extends BaseController with Logging {
 
 
-  // API to get available rooms by type
-  def getAvailableRoomsByType(roomType: String): Action[AnyContent] = Action.async {
-    roomService.getAvailableRoomsBySuiteType(roomType).map { rooms =>
-      Ok(Json.toJson(rooms))
-    }
-  }
-
 
   def checkIn: Action[JsValue] = Action.async(parse.json) { request =>
     request.body

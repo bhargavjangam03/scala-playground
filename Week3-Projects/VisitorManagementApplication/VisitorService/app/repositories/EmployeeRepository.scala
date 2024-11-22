@@ -49,7 +49,7 @@ class EmployeeRepository @Inject()(dbConfigProvider: DatabaseConfigProvider)(imp
 
   def list(): Future[Seq[Employee]] = db.run(employees.result)
 
-  def getById(id: Int): Future[Option[Employee]] = db.run(employees.filter(_.employeeId === id).result.headOption)
+  def getEmployeeById(id: Int): Future[Option[Employee]] = db.run(employees.filter(_.employeeId === id).result.headOption)
 
   def getEmployeeByMail(mail: String): Future[Option[Employee]] = db.run(employees.filter(_.email === mail).result.headOption)
 
@@ -60,6 +60,14 @@ class EmployeeRepository @Inject()(dbConfigProvider: DatabaseConfigProvider)(imp
       case 0 => false
       case _ => true
     }
+  }
+
+  def updateEmployee(employeeId: Int, employee: Employee): Future[Int] = {
+    val query = employees.filter(_.employeeId === employeeId)
+      .map(e => (e.employeeName, e.organisation, e.building, e.email, e.contactNo))
+      .update((employee.employeeName, employee.organisation, employee.building, employee.email, employee.contactNo))
+
+    db.run(query)
   }
 
 }

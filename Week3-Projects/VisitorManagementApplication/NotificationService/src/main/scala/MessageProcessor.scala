@@ -88,8 +88,8 @@ class HostProcessor extends Actor {
         case "pending" =>
           // Define visitor arrival notification for approval
           val subject = "Visitor Arrival Notification"
-          val approvalLink = s"http://localhost:9000/api/visitor/approve/${msg.visitorId}"
-          val rejectionLink = s"http://localhost:9000/api/visitor/reject/${msg.visitorId}"
+          val approvalLink = s"http://localhost:9000/visitor/approve/${msg.visitorId}"
+          val rejectionLink = s"http://localhost:9000/visitor/reject/${msg.visitorId}"
           val body =
             s"""
                |Dear $hostName,

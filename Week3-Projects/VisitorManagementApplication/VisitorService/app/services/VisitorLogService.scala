@@ -27,7 +27,7 @@ class VisitorLogService @Inject()(visitorLogRepository: VisitorLogRepository,
     persistedVisitorLogFuture.flatMap { visitorLogId =>
       for {
         visitorOption <- visitorService.getVisitorById(visitorLog.visitorId)
-        employeeOption <- employeeService.get(visitorLog.employeeId)
+        employeeOption <- employeeService.getEmployeeById(visitorLog.employeeId)
       } yield {
         // Handle case when both visitor and employee are found
         (visitorOption, employeeOption) match {
@@ -64,7 +64,7 @@ class VisitorLogService @Inject()(visitorLogRepository: VisitorLogRepository,
         // If the visitor log entry is updated, fetch the visitor and employee details
         for {
           visitorOption <- visitorService.getVisitorById(visitorLog.visitorId)
-          employeeOption <- employeeService.get(visitorLog.employeeId)
+          employeeOption <- employeeService.getEmployeeById(visitorLog.employeeId)
         } yield {
           // Handle case when both visitor and employee are found
           (visitorOption, employeeOption) match {
@@ -101,7 +101,7 @@ class VisitorLogService @Inject()(visitorLogRepository: VisitorLogRepository,
         // If the visitor log entry is updated, fetch the visitor and employee details
         for {
           visitorOption <- visitorService.getVisitorById(visitorLog.visitorId)
-          employeeOption <- employeeService.get(visitorLog.employeeId)
+          employeeOption <- employeeService.getEmployeeById(visitorLog.employeeId)
         } yield {
           // Handle case when both visitor and employee are found
           (visitorOption, employeeOption) match {

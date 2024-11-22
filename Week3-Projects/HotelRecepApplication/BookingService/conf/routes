@@ -5,10 +5,14 @@
 
 # An example controller showing a sample home page
 GET     /                           controllers.HomeController.index()
-GET   /rooms/available/:roomType    controllers.BookingController.getAvailableRoomsByType(roomType: String)
-POST   /booking/checkIn             controllers.BookingController.checkIn()
-POST   /room            controllers.RoomController.addRoom()
+
 POST   /booking/checkOut   controllers.BookingController.checkOut
+POST   /booking/checkIn             controllers.BookingController.checkIn()
+
+POST   /room            controllers.RoomController.addRoom()
+GET   /rooms/available/:roomType    controllers.RoomController.getAvailableRoomsByType(roomType: String)
+
+
 GET     /guests/active               controllers.GuestController.getActiveGuests()
 
 # Login Routes

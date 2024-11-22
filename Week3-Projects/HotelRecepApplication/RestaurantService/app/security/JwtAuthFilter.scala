@@ -16,7 +16,7 @@ class JwtAuthFilter @Inject()(
 
 
   override def apply(nextFilter: RequestHeader => Future[Result])(request: RequestHeader): Future[Result] = {
-    val publicRoutes = Seq("/login","/menu")
+    val publicRoutes = Seq("/login")
 
     if (publicRoutes.exists(request.path.startsWith)) {
       // Allow public routes without authentication

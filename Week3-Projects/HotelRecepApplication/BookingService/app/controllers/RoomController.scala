@@ -26,4 +26,11 @@ class RoomController @Inject()(val cc: ControllerComponents, roomService: RoomSe
     )
   }
 
+  // API to get available rooms by type
+  def getAvailableRoomsByType(roomType: String): Action[AnyContent] = Action.async {
+    roomService.getAvailableRoomsBySuiteType(roomType).map { rooms =>
+      Ok(Json.toJson(rooms))
+    }
+  }
+
 }
