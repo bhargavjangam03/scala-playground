@@ -20,19 +20,15 @@ class VisitorLogService @Inject()(visitorLogRepository: VisitorLogRepository,
   // Add a new visitor log entry
   // Add a new visitor log entry
   def addVisitorLog(visitorLog: VisitorLog): Future[Int] = {
-    // Add the visitor log entry
     val persistedVisitorLogFuture = visitorLogRepository.addVisitorLog(visitorLog)
 
-    // Fetch the visitor and employee details asynchronously
     persistedVisitorLogFuture.flatMap { visitorLogId =>
       for {
         visitorOption <- visitorService.getVisitorById(visitorLog.visitorId)
         employeeOption <- employeeService.getEmployeeById(visitorLog.employeeId)
       } yield {
-        // Handle case when both visitor and employee are found
         (visitorOption, employeeOption) match {
           case (Some(visitor), Some(employee)) =>
-            // Create the KafkaRequest when both visitor and employee are found
             val kafkaRequest = KafkaMessage(
               visitorId = visitorLogId,
               visitorName = visitor.name,
@@ -42,16 +38,18 @@ class VisitorLogService @Inject()(visitorLogRepository: VisitorLogRepository,
               visitorContactNumber = visitor.contactNumber,
               visitorStatus = visitorLog.status
             )
-
-            // Send the Kafka request
             kafkaProducerService.sendToKafka(kafkaRequest)
-        }
+            visitorLogId
 
-        // Return the visitorLogId after processing Kafka request
-        visitorLogId
+          case _ =>
+            throw new IllegalStateException(
+              s"Unexpected state: Visitor with ID ${visitorLog.visitorId} or Employee with ID ${visitorLog.employeeId} not found."
+            )
+        }
       }
     }
   }
+
 
 
 
