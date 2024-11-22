@@ -16,9 +16,6 @@ class VisitorLogService @Inject()(visitorLogRepository: VisitorLogRepository,
                                   kafkaProducerService: KafkaProducerService
                               ) {
 
-  // Add a new visitor log entry
-  // Add a new visitor log entry
-  // Add a new visitor log entry
   def addVisitorLog(visitorLog: VisitorLog): Future[Int] = {
     val persistedVisitorLogFuture = visitorLogRepository.addVisitorLog(visitorLog)
 
