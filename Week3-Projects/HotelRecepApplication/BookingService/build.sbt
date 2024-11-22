@@ -22,6 +22,7 @@ libraryDependencies ++= Seq(
   "org.apache.kafka" %% "kafka" % "3.0.0", // Replace with the latest version
   "org.apache.kafka" % "kafka-clients" % "3.0.0"
 )
+libraryDependencies+= "com.auth0" % "java-jwt" % "4.3.0"
 
 // Adds additional packages into Twirl
 //TwirlKeys.templateImports += "com.example.controllers._"

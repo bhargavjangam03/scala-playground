@@ -5,7 +5,9 @@
 
 # An example controller showing a sample home page
 GET     /                           controllers.HomeController.index()
-POST     /                           controllers.MenuController.addMenu()
+POST     /menu                           controllers.MenuController.addMenu()
+# Login Routes
+POST    /login                controllers.AuthController.login
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
