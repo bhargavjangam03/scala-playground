@@ -10,7 +10,7 @@ import javax.inject._
 class KafkaProducerService @Inject()() {
 
   private val props = new Properties()
-  props.put("bootstrap.servers", "localhost:9092")
+  props.put("bootstrap.servers", "10.128.0.2:9092")
   props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
   props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
 
