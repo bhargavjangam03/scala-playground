@@ -5,6 +5,9 @@ import akka.kafka.scaladsl.Consumer
 import akka.stream.{ActorMaterializer, Materializer}
 import akka.stream.scaladsl.Sink
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import model.KafkaMessage
+import spray.json._
+import model.JsonFormats.kafkaMessageFormat
 
 
 object NotificationServiceApp extends App {
@@ -26,11 +29,8 @@ object NotificationServiceApp extends App {
 
 
   Consumer.plainSource(consumerSettings, Subscriptions.topics("waverock-visitor"))
-    .map(record=>record.value())
-    .runWith(Sink.foreach(message => {
-      println(s"Received message: ${message}")
-      notificationHandler ! message
-    }))
+    .map(record => record.value().parseJson.convertTo[KafkaMessage])
+    .runWith(Sink.foreach(message => notificationHandler ! message))
 
 
   println("Listeners are active and consuming messages...")

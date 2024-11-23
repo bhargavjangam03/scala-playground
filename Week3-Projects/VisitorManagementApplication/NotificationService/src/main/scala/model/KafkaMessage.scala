@@ -1,7 +1,8 @@
 package model
 
-import play.api.libs.json.{Format, JsPath, Json, Reads, Writes}
-import play.api.libs.functional.syntax._
+import spray.json.DefaultJsonProtocol._
+import spray.json._
+
 
 case class KafkaMessage(visitorId: Int,
                         visitorName: String,
@@ -10,10 +11,8 @@ case class KafkaMessage(visitorId: Int,
                         employeeMail: String,
                         visitorContactNumber:String,
                         visitorStatus:String)
-
-object KafkaMessage {
-  implicit val kafkaMessageReads: Reads[KafkaMessage] = Json.reads[KafkaMessage]
-  implicit val kafkaMessageWrites: Writes[KafkaMessage] = Json.writes[KafkaMessage]
-
-  implicit val kafkaMessageFormat: Format[KafkaMessage] = Format(kafkaMessageReads, kafkaMessageWrites)
+object JsonFormats {
+  implicit val kafkaMessageFormat: RootJsonFormat[KafkaMessage] = jsonFormat7(KafkaMessage)
 }
+
+
