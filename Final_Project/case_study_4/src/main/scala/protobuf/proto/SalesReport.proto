@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package protobuf;
+
+message SalesReport {
+  string store = 1;          // Store identifier
+  string dept = 2;           // Department identifier
+  string date = 3;          // Date of the sales record
+  double weekly_sales = 4;  // Weekly sales amount
+  bool is_holiday = 5;      // Indicates whether the record is for a holiday
+}

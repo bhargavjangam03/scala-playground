@@ -1,0 +1,10 @@
+
+µ
+SalesReport.protoprotobuf"ç
+SalesReport
+store (	Rstore
+dept (	Rdept
+date (	Rdate!
+weekly_sales (RweeklySales
+
+is_holiday (R	isHolidaybproto3
