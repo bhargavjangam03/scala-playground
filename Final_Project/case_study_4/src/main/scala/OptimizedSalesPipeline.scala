@@ -1,3 +1,20 @@
+
+/*
+  The following code implements various stages of data processing, enrichment,
+  metric calculation, and Kafka integration. The main steps include:
+
+  1. Enriching initial data from multiple sources (train.csv, stores.csv, features.csv).
+  2. Creating metrics at the store and department levels.
+  3. Calculating weekly sales trends for departments.
+  4. Consuming messages from Kafka and enriching them with broadcasted data.
+  5. Updating store and department-level metrics based on incoming data.
+
+  All the details and logic behind this implementation are thoroughly explained in the attached
+  document "Case_Study_4_Execution_Walkthrough_and_Proof_Images_Bhargav_Jangam" for a more in-depth understanding of
+  the entire process, workflow, and results.
+*/
+
+
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.streaming.Trigger
 import org.apache.spark.sql.SparkSession
@@ -48,7 +65,7 @@ object OptimizedSalesPipeline {
     val broadCastedFeaturesDF = broadcast(featuresDF.cache())
 
     // Enrich the training data
-    val enrichedDF = validatedTrainDF
+    var enrichedDF = validatedTrainDF
       .join(broadCastedStoresDF, Seq("Store"), "inner")
       .join(broadCastedFeaturesDF, Seq("Store","Date","isHoliday"), "inner")
 
@@ -59,6 +76,7 @@ object OptimizedSalesPipeline {
       .mode("append")
       .partitionBy("Store", "Date")
       .parquet(enrichedParquetDir)
+
 
     // Step 4: Compute Initial Store and Department Metrics
 
@@ -173,6 +191,22 @@ object OptimizedSalesPipeline {
           .partitionBy("Store", "Date")
           .parquet(enrichedParquetDir)
 
+        val combineEnrichedDF = enrichedStreamDF
+          .select(
+            "Store", "Date", "IsHoliday", "Dept", "Weekly_Sales", "Temperature", "Fuel_Price",
+            "MarkDown1", "MarkDown2", "MarkDown3", "MarkDown4", "MarkDown5",
+            "CPI", "Unemployment", "Type", "Size"
+          )
+          .union(
+            enrichedDF.select(
+              "Store", "Date", "IsHoliday", "Dept", "Weekly_Sales", "Temperature", "Fuel_Price",
+              "MarkDown1", "MarkDown2", "MarkDown3", "MarkDown4", "MarkDown5",
+              "CPI", "Unemployment", "Type", "Size"
+            )
+          )
+
+        enrichedDF = combineEnrichedDF.cache()
+
         // Update store-level metrics
         val updatedStoreMetricsDF = enrichedStreamDF.groupBy("Store")
           .agg(
@@ -253,7 +287,6 @@ object OptimizedSalesPipeline {
               .otherwise(lit("No Change"))
           )
 
-        // Step 4: Cache deptTrendDF after the update
         deptTrendDF = updatedDeptTrendDF.cache()
         println("Updated Department Weekly-Trends DataFrame:")
         updatedDeptTrendDF.show(5)
