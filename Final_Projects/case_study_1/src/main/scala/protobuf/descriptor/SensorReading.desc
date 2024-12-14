@@ -1,0 +1,8 @@
+
+±
+SensorReading.protoprotobuf"‡
+SensorReading
+sensorId (RsensorId
+	timestamp (R	timestamp 
+temperature (Rtemperature
+humidity (Rhumiditybproto3
