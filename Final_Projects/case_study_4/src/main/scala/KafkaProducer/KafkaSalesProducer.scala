@@ -37,7 +37,7 @@ object KafkaSalesProducer {
     // Generate sales data starting from the first Sunday of 2013
     val startDate = LocalDate.parse("2013-01-06", DateTimeFormatter.ISO_DATE) // First Sunday of 2013
     val maxStores = 45
-    val salesRange = 100000 to 500000
+    val salesRange = 10000 to 50000
     val random = new scala.util.Random()
 
     // Generate tick source every 10 seconds
