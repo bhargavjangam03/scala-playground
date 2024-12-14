@@ -20,6 +20,9 @@ object OptimizedSalesPipeline {
       .master("local[*]")
       .getOrCreate()
 
+    // Set log level to WARN to reduce logging verbosity
+    spark.sparkContext.setLogLevel("WARN")
+
     import spark.implicits._
 
     val descriptorFile = "src/main/scala/protobuf/descriptor/SalesReport.desc"
@@ -47,12 +50,12 @@ object OptimizedSalesPipeline {
     // Enrich the training data
     val enrichedDF = validatedTrainDF
       .join(broadCastedStoresDF, Seq("Store"), "inner")
-      .join(broadCastedFeaturesDF, Seq("Store"), "inner")
+      .join(broadCastedFeaturesDF, Seq("Store","Date","isHoliday"), "inner")
 
     println("Initial Enriched DataFrame:")
     enrichedDF.show(5)
     // Save enriched data
-    enrichedDF.write
+    enrichedDF.limit(1000).write
       .mode("append")
       .partitionBy("Store", "Date")
       .parquet(enrichedParquetDir)
@@ -60,10 +63,10 @@ object OptimizedSalesPipeline {
     // Step 4: Compute Initial Store and Department Metrics
 
     // Store Metrics
-    val storeMetricsDF = enrichedDF.groupBy("Store")
+    var storeMetricsDF = enrichedDF.groupBy("Store")
       .agg(
         sum("Weekly_Sales").alias("Total_Sales"),
-        count("Weekly_Sales").alias("Number_of_Sales"),
+        count("Weekly_Sales").alias("Number_of_Sales_Report"),
         avg("Weekly_Sales").alias("Avg_Weekly_Sales")
       )
       .cache()
@@ -81,45 +84,52 @@ object OptimizedSalesPipeline {
 
     println("Initial Top Performing Stores DataFrame:")
     topStoresDF.show(5)
-    // Second Store JSON (Top 10)
+
+   //  Second Store JSON (Top 10)
     topStoresDF.write.mode("overwrite").json(s"$store_folder_path/top_performing_stores.json")
 
     // Department Metrics
-    val deptMetricsDF = enrichedDF.groupBy("Store", "Dept")
+    var deptMetricsDF = enrichedDF.groupBy("Store", "Dept")
       .agg(
         sum("Weekly_Sales").alias("Total_Sales"),
-        sum(when($"Is_Holiday" === true, 1).otherwise(0)).alias("Holiday_Sales"),
-        sum(when($"Is_Holiday" === false, 1).otherwise(0)).alias("Non_Holiday_Sales")
+        sum(when($"IsHoliday" === true, 1).otherwise(0)).alias("Holiday_Sales"),
+        sum(when($"IsHoliday" === false, 1).otherwise(0)).alias("Non_Holiday_Sales")
       )
       .cache()
 
     println("Initial Department Metrics DataFrame:")
     deptMetricsDF.show(5)
 
-    // First Department JSON (Total sales, holiday, and non-holiday sales)
-    deptMetricsDF.write.mode("overwrite").json(s"$department_folder_path/dept_metrics.json")
+ //    First Department JSON (Total sales, holiday, and non-holiday sales)
+    deptMetricsDF.limit(100).write.mode("overwrite").json(s"$department_folder_path/dept_metrics.json")
 
-    // Department trend (weekly sales, previous sales, and trend)
-    val deptTrendDF = enrichedDF.groupBy("Store", "Dept", "Date")
-      .agg(
-        sum("Weekly_Sales").alias("Weekly_Sales"),
-        lag("Weekly_Sales", 1).over(Window.partitionBy("Store", "Dept").orderBy("Date")).alias("Previous_Weekly_Sales")
-      )
-      .withColumn("Trend",
-        when($"Weekly_Sales" > $"Previous_Weekly_Sales", concat(lit("Increase by "), $"Weekly_Sales" - $"Previous_Weekly_Sales"))
-          .when($"Weekly_Sales" < $"Previous_Weekly_Sales", concat(lit("Decrease by "), $"Previous_Weekly_Sales" - $"Weekly_Sales"))
+    val windowSpec = Window.partitionBy("Store", "Dept").orderBy("Date")
+
+    // Add the Previous_Weekly_Sales column using lag function
+    val withPreviousSalesDF = enrichedDF
+      .withColumn("Previous_Weekly_Sales", lag("Weekly_Sales", 1).over(windowSpec))
+
+    // Compute the Weekly_Trend column
+    val trendDF = withPreviousSalesDF
+      .withColumn(
+        "Weekly_Trend",
+        when($"Weekly_Sales" > $"Previous_Weekly_Sales",
+          concat(lit("Increase by "), $"Weekly_Sales" - $"Previous_Weekly_Sales"))
+          .when($"Weekly_Sales" < $"Previous_Weekly_Sales",
+            concat(lit("Decrease by "), $"Previous_Weekly_Sales" - $"Weekly_Sales"))
           .otherwise(lit("No Change"))
       )
-      .cache()
+
+    // Select relevant columns
+    var deptTrendDF = trendDF.select("Store", "Dept", "Date", "Weekly_Sales", "Previous_Weekly_Sales", "Weekly_Trend")
 
     println("Initial Department Weekly-Trends DataFrame:")
     deptTrendDF.show(5)
 
     // Second Department JSON (Weekly sales, previous sales, and trend)
-    deptTrendDF.write.mode("overwrite").json(s"$department_folder_path/dept_trend_metrics.json")
+    deptTrendDF.limit(100).write.mode("overwrite").json(s"$department_folder_path/dept_trend_metrics.json")
 
     // Step 5: Real-Time Data Processing (Streaming)
-
     // Read from Kafka and process in real-time
     // Read messages from Kafka
     val kafkaDF = spark.readStream
@@ -134,19 +144,25 @@ object OptimizedSalesPipeline {
       .selectExpr("CAST(value AS BINARY) as value") // Extract binary Protobuf data
       .select(from_protobuf($"value", messageType, descriptorFile).alias("SalesReport")) // Deserialize Protobuf
       .select("SalesReport.*") // Flatten the struct for individual fields
-      .na.fill(Map(
-        "is_holiday" -> false,      // Default boolean value
-        "weekly_sales" -> 0.0f      // Default float value
-      ))
+      .select(
+        $"store".alias("Store"),
+        $"dept".alias("Dept"),
+        $"date".alias("Date"),
+        $"weekly_sales".alias("Weekly_Sales"),
+        $"is_holiday".alias("IsHoliday")
+      )
 
     // Real-time processing of data
     val streamingQuery = salesStreamDF
       .writeStream
       .foreachBatch { (batchDF: DataFrame, _: Long) =>
+
+        println("Newly Generated Data")
+        batchDF.show(5)
         // Enrich incoming data
         val enrichedStreamDF = batchDF
-          .join(broadCastedFeaturesDF, Seq("Store"), "inner")
-          .join(broadCastedStoresDF, Seq("Store"), "inner")
+          .join(broadCastedFeaturesDF, Seq("Store","Date","IsHoliday"), "left")
+          .join(broadCastedStoresDF, Seq("Store"), "left")
 
         println("New Enriched DataFrame:")
         enrichedStreamDF.show(5)
@@ -162,18 +178,20 @@ object OptimizedSalesPipeline {
           .agg(
             sum("Weekly_Sales").alias("Batch_Total_Sales"),
             count("Weekly_Sales").alias("Batch_Sales_Count"),
-            avg("Weekly_Sales").alias("Avg_Weekly_Sales")
+            avg("Weekly_Sales").alias("Batch_Avg_Weekly_Sales")
           )
           .join(storeMetricsDF, Seq("Store"), "left")
           .withColumn("Total_Sales", col("Batch_Total_Sales") + col("Total_Sales"))
-          .withColumn("Number_of_Sales", col("Batch_Sales_Count") + col("Number_of_Sales"))
-          .withColumn("Avg_Weekly_Sales", (col("Batch_Total_Sales") + col("Total_Sales")) / (col("Number_of_Sales") + col("Batch_Sales_Count")))
-          .select("Store", "Total_Sales", "Number_of_Sales", "Avg_Weekly_Sales")
+          .withColumn("Number_of_Sales_Report", col("Batch_Sales_Count") + col("Number_of_Sales_Report"))
+          .withColumn("Avg_Weekly_Sales", (col("Batch_Total_Sales") + col("Total_Sales")) / (col("Number_of_Sales_Report") + col("Batch_Sales_Count")))
+          .select("Store", "Total_Sales", "Number_of_Sales_Report", "Avg_Weekly_Sales")
 
         println("Updated Store Metrics Dataframe")
         updatedStoreMetricsDF.show(5)
+        storeMetricsDF = updatedStoreMetricsDF.cache()
+
         // Save updated store metrics
-        updatedStoreMetricsDF.write.mode("overwrite").json(s"$store_folder_path/store_metrics.json")
+       updatedStoreMetricsDF.limit(100).write.mode("overwrite").json(s"$store_folder_path/store_metrics.json")
 
         // Get Top 10 Stores by Total Sales
         val updatedTopStoresDF = updatedStoreMetricsDF
@@ -183,38 +201,63 @@ object OptimizedSalesPipeline {
         println("Updated Top Performing Stores DataFrame")
         updatedTopStoresDF.show(5)
         // Save the top-performing stores
-        updatedTopStoresDF.write.mode("overwrite").json(s"$store_folder_path/top_performing_stores.json")
+        updatedTopStoresDF.limit(10).write.mode("overwrite").json(s"$store_folder_path/top_performing_stores.json")
 
         // Update department-level metrics
         val updatedDeptMetricsDF = enrichedStreamDF.groupBy("Store", "Dept")
           .agg(
-            sum("Weekly_Sales").alias("Weekly_Sales"),
-            sum(when($"Is_Holiday" === true, 1).otherwise(0)).alias("Holiday_Sales"),
-            sum(when($"Is_Holiday" === false, 1).otherwise(0)).alias("Non_Holiday_Sales")
+            sum("Weekly_Sales").alias("Batch_Weekly_Sales"),
+            sum(when($"IsHoliday" === true, 1).otherwise(0)).alias("Batch_Holiday_Sales"),
+            sum(when($"IsHoliday" === false, 1).otherwise(0)).alias("Batch_Non_Holiday_Sales")
           )
-          .cache()
+          .join(deptMetricsDF, Seq("Store", "Dept"), "left")
+          .withColumn("Total_Sales", col("Batch_Weekly_Sales") + col("Total_Sales"))
+          .withColumn("Holiday_Sales", col("Batch_Holiday_Sales") + col("Holiday_Sales"))
+          .withColumn("Non_Holiday_Sales", col("Batch_Non_Holiday_Sales") + col("Non_Holiday_Sales"))
+          .select("Store", "Dept", "Total_Sales", "Holiday_Sales", "Non_Holiday_Sales")
 
         println("Updated Department Metrics DataFrame:")
         updatedDeptMetricsDF.show(5)
 
-        updatedDeptMetricsDF.write.mode("overwrite").json(s"$department_folder_path/dept_metrics.json")
+        deptMetricsDF = updatedDeptMetricsDF.cache()
 
-        // Department trend (weekly sales, previous sales, and trend)
-        val updatedDeptTrendDF = enrichedStreamDF.groupBy("Store", "Dept", "Date")
+        updatedDeptMetricsDF.limit(100).write.mode("overwrite").json(s"$department_folder_path/dept_metrics.json")
+
+
+        // Aggregate the new weekly sales data for the current batch
+        val batchDeptTrendDF = enrichedStreamDF.groupBy("Store", "Dept", "Date")
           .agg(
-            sum("Weekly_Sales").alias("Weekly_Sales"),
-            lag("Weekly_Sales", 1).over(Window.partitionBy("Store", "Dept").orderBy("Date")).alias("Previous_Weekly_Sales")
+            sum("Weekly_Sales").alias("Weekly_Sales")
           )
-          .withColumn("Trend",
-            when($"Weekly_Sales" > $"Previous_Weekly_Sales", concat(lit("Increase by "), $"Weekly_Sales" - $"Previous_Weekly_Sales"))
-              .when($"Weekly_Sales" < $"Previous_Weekly_Sales", concat(lit("Decrease by "), $"Previous_Weekly_Sales" - $"Weekly_Sales"))
+
+
+        val preparedBatchDeptTrendDF = batchDeptTrendDF
+          .withColumn("Previous_Weekly_Sales", lit(null).cast("double")) // Placeholder for Previous_Weekly_Sales
+          .withColumn("Weekly_Trend", lit(null).cast("string"))          // Placeholder for Weekly_Trend
+
+
+
+        val combinedDeptTrendDF = preparedBatchDeptTrendDF
+          .select("Store", "Dept", "Date", "Weekly_Sales", "Previous_Weekly_Sales", "Weekly_Trend") // Align schema
+          .union(deptTrendDF.select("Store", "Dept", "Date", "Weekly_Sales", "Previous_Weekly_Sales", "Weekly_Trend"))
+
+        val windowSpec = Window.partitionBy("Store", "Dept").orderBy("Date")
+
+        val updatedDeptTrendDF = combinedDeptTrendDF
+          .withColumn("Previous_Weekly_Sales", lag("Weekly_Sales", 1).over(windowSpec)) // Compute Previous_Weekly_Sales
+          .withColumn("Weekly_Trend",                                               // Compute Weekly_Trend
+            when(col("Weekly_Sales") > col("Previous_Weekly_Sales"),
+              concat(lit("Increase by "), col("Weekly_Sales") - col("Previous_Weekly_Sales")))
+              .when(col("Weekly_Sales") < col("Previous_Weekly_Sales"),
+                concat(lit("Decrease by "), col("Previous_Weekly_Sales") - col("Weekly_Sales")))
               .otherwise(lit("No Change"))
           )
-          .cache()
 
+        // Step 4: Cache deptTrendDF after the update
+        deptTrendDF = updatedDeptTrendDF.cache()
         println("Updated Department Weekly-Trends DataFrame:")
         updatedDeptTrendDF.show(5)
-        updatedDeptTrendDF.write.mode("overwrite").json(s"$metricsOutputDir/dept_trend_metrics.json")
+        updatedDeptTrendDF.limit(100).write.mode("overwrite").json(s"$metricsOutputDir/dept_trend_metrics.json")
 
       }
       .outputMode("update")
