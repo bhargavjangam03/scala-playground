@@ -9,6 +9,9 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{ByteArraySerializer, StringSerializer}
 import scala.concurrent.duration._
 import protobuf.SalesReport.SalesReport
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -31,20 +34,36 @@ object KafkaSalesProducer {
     def createSalesReport(store: String, dept: String, date: String, weeklySales: Double, isHoliday: Boolean): SalesReport =
       SalesReport(store = store, dept = dept, date = date, weeklySales = weeklySales, isHoliday = isHoliday)
 
-    val tickSource = Source.tick(0.seconds, 10.seconds, ())
-      .zipWithIndex // Adds an index to the ticks to use as the record number
+    // Generate sales data starting from the first Sunday of 2013
+    val startDate = LocalDate.parse("2013-01-06", DateTimeFormatter.ISO_DATE) // First Sunday of 2013
+    val maxStores = 45
+    val salesRange = 100000 to 500000
+    val random = new scala.util.Random()
 
+    // Generate tick source every 10 seconds
+    val tickSource = Source.tick(0.seconds, 1.seconds, ())
+      .zipWithIndex // Adds an index to determine the date offset and other record variations
+
+    // Map ticks to sales records
     val salesRecords = tickSource.map { case (_, i) =>
+      val currentDate = startDate.plusWeeks(i.toLong) // Add weeks based on the index
+      val store = (i % maxStores + 1).toString // Rotate store numbers from 1 to 45
+      val dept = (i % 50 + 1).toString // Rotate department numbers from 1 to 5
+      val salesValue = salesRange.start + random.nextInt(salesRange.end - salesRange.start) // Random sales value in range
+      val isHoliday = random.nextBoolean() // Randomly assign holiday status
+
+      // Create the sales report
       val salesReport = createSalesReport(
-        store = i.toString,
-        dept = (i % 5 + 1).toString,
-        date = s"2024-12-${10 + i}",
-        weeklySales = 10000 + i * 500,
-        isHoliday = i % 2 == 0
+        store = store,
+        dept = dept,
+        date = currentDate.format(DateTimeFormatter.ISO_DATE),
+        weeklySales = salesValue,
+        isHoliday = isHoliday
       )
+
+      // Create Kafka producer record
       new ProducerRecord[String, Array[Byte]](topic, salesReport.store, serializeProtobuf(salesReport))
     }
-
 
     // Stream records to Kafka
     salesRecords
