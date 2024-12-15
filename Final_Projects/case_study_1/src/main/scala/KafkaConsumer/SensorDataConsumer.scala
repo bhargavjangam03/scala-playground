@@ -17,8 +17,8 @@ import org.apache.spark.sql.streaming.Trigger
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SaveMode, SparkSession}
-import org.apache.spark.sql.protobuf.functions.from_protobuf
-import utils.GcsOperations.{storeSensorDataInGCP,processBatchDataAndStore}
+import org.apache.spark.sql.protobuf.functions.{from_protobuf,to_protobuf}
+import utils.GcsOperations.{storeRawDataByProcessingTime,processBatchDataAndStore}
 
 import java.time.LocalDateTime
 
@@ -28,11 +28,15 @@ object SensorDataConsumer {
     val spark = SparkSession.builder()
       .appName("Sensor Data Consumer")
       .config("spark.hadoop.fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
+      .config("spark.hadoop.fs.defaultFS","gs://bhargav-assignments/")
       .config("spark.hadoop.fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS")
       .config("spark.hadoop.google.cloud.auth.service.account.enable", "true")
       .config("spark.hadoop.google.cloud.auth.service.account.json.keyfile", "src/main/resources/spark-gcs-key.json")
+      .config("spark.hadoop.fs.gs.auth.service.account.debug", "false")
       .master("local[*]")
       .getOrCreate()
+
+    spark.sparkContext.setLogLevel("WARN")
 
     import spark.implicits._
 
@@ -47,13 +51,15 @@ object SensorDataConsumer {
       .option("subscribe", topic)
       .option("startingOffsets", "earliest")
       .load()
-    // Deserialize the JSON payload into SensorReading
+
+
     val sensorReadingsDF = kafkaDF.selectExpr("CAST(value AS STRING)").as[String]
       .map(json => {
         // Parse the JSON string into a SensorReading object
         val reading = Json.parse(json).as[SensorReading]
         (reading.sensorId, reading.timestamp, reading.temperature, reading.humidity)
       }).toDF("sensorId", "timestamp", "temperature", "humidity")
+
 
     // Validate the data
     val validatedDF = sensorReadingsDF.filter(
@@ -69,17 +75,8 @@ object SensorDataConsumer {
         col("humidity").between(0, 100)
     )
 
-    // Convert the validated DataFrame into Protobuf format
-    val protobufSchema = "src/main/scala/protobuf/SensorReading"  // Protobuf schema path
-    val protobufDF = validatedDF.select(
-      from_protobuf(col("sensorId"), protobufSchema).alias("sensorId"),
-      from_protobuf(col("timestamp"), protobufSchema).alias("timestamp"),
-      from_protobuf(col("temperature"), protobufSchema).alias("temperature"),
-      from_protobuf(col("humidity"), protobufSchema).alias("humidity")
-    )
-
     // Process this dataframe
-    val query = protobufDF.writeStream
+    val query = validatedDF.writeStream
       .trigger(Trigger.ProcessingTime("10 seconds"))
       .foreachBatch { (batchDF: Dataset[Row], _: Long) => processSensorData(spark, batchDF) }
       .start()
@@ -91,7 +88,7 @@ object SensorDataConsumer {
   private def processSensorData(spark: SparkSession, batchDF: DataFrame): Unit = {
     batchDF.cache()
     val currentProcessingTime = LocalDateTime.now()
-    storeSensorDataInGCP(batchDF, currentProcessingTime)
+    storeRawDataByProcessingTime(batchDF, currentProcessingTime)
     processBatchDataAndStore(spark, batchDF, currentProcessingTime)
   }
 

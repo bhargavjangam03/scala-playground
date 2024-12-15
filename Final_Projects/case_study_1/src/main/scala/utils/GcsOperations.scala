@@ -15,7 +15,6 @@ object GcsOperations {
   val aggregatedMessageType: String = "protobuf.AggregatedSensorReading"
   val rawDataProtoDescriptorPath = "src/main/scala/protobuf/descriptor/SensorReading.desc"
   val aggregatedDataProtoDescriptorPath = "src/main/scala/protobuf/descriptor/AggregatedSensorReading.desc"
-  val gsEventTimeBasedRawDataPath = "gs://bhargav-assignments/final_project/partitioned_by_time/case_study_1/raw/sensor-data/"
   val gsProcessingTimeBasedRawDataParentPath = "gs://bhargav-assignments/final_project/case_study_1/raw/sensor-data/"
   val gsAggregationDataParentPath = "gs://bhargav-assignments/final_project/case_study_1/aggregated/protobuf"
   val gsAggregationJsonDataParentPath = "gs://bhargav-assignments/final_project/case_study_1/aggregated/json"
@@ -75,9 +74,9 @@ object GcsOperations {
     val computedAggData = existingAggregatedData match {
       case null => batchDataAggregatedDF
       case _ =>
-        existingAggregatedData.join(batchDataAggregatedDF, Seq("sensorId"), "fullOuterJoin")
+        existingAggregatedData.join(batchDataAggregatedDF, Seq("sensorId"), "fullouter")
           .select(
-            coalesce(batchDataAggregatedDF("sensorId"), existingAggregatedData("storeId")).alias("storeId"),
+            coalesce(batchDataAggregatedDF("sensorId"), existingAggregatedData("sensorId")).alias("sensorId"),
             (
               (
                 (coalesce(batchDataAggregatedDF("averageTemperature"), lit(0.0f)) * coalesce(batchDataAggregatedDF("noOfRecords"), lit(0)))
@@ -104,11 +103,15 @@ object GcsOperations {
               + coalesce(existingAggregatedData("noOfRecords"), lit(0))).alias("noOfRecords")
           )
     }
+    println("New Aggregated Data")
+    computedAggData.show(5)
     computedAggData
   }
 
   def getBatchAggregatedDF(batchDF: DataFrame): DataFrame = {
-    batchDF
+    println("Current Batch Data")
+    batchDF.show(5)
+    val batchAggregatedDf = batchDF
       .groupBy("sensorId")
       .agg(
         avg(col("temperature")).cast("float").alias("averageTemperature"),
@@ -119,6 +122,9 @@ object GcsOperations {
         max(col("humidity")).alias("maximumHumidity"),
         count(lit(1)).alias("noOfRecords")
       )
+    println("Current Batch Aggregated Data")
+    batchAggregatedDf.show(5)
+    batchAggregatedDf
   }
 
   def storeAggregatedMetricsInGCP(aggregatedMetricsDF: DataFrame, currentProcessingTime: LocalDateTime): Unit = {
@@ -138,33 +144,9 @@ object GcsOperations {
     // Store the JSON format
     aggregatedMetricsDF.write.mode(SaveMode.Overwrite).json(aggregatedJsonFP)
 
-
   }
 
-  def storeSensorDataInGCP(sensorBatchData: DataFrame, currentProcessingTime: LocalDateTime): Unit = {
-    // Store the raw data by serialising it to protobuf
-    storeRawDataPartitionedByTime(sensorBatchData)
 
-    // Doing this for faster fetching in the next stages
-    storeRawDataByProcessingTime(sensorBatchData, currentProcessingTime)
-  }
-
-  def storeRawDataPartitionedByTime(sensorBatchData: DataFrame): Unit = {
-    val partitionedDF = sensorBatchData
-      .withColumn("value", to_protobuf(struct(sensorBatchData.columns.map(col): _*), sensorDataMessageType, rawDataProtoDescriptorPath))
-      .withColumn("year", from_unixtime(col("timestamp") / 1000, "yyyy")) // Convert milliseconds to seconds
-      .withColumn("month", from_unixtime(col("timestamp") / 1000, "MM"))
-      .withColumn("day", from_unixtime(col("timestamp") / 1000, "dd"))
-      .withColumn("hour", from_unixtime(col("timestamp") / 1000, "HH"))
-
-    partitionedDF
-      .select(col("value"), col("year"), col("month"), col("day"), col("hour"))
-      .write
-      .mode(SaveMode.Append)
-      .partitionBy("year", "month", "day", "hour")
-      .format("parquet")
-      .save(gsEventTimeBasedRawDataPath)
-  }
 
   def storeRawDataByProcessingTime(sensorBatchData: DataFrame, currentProcessingTime: LocalDateTime): Unit = {
     val formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd/HH")

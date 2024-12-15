@@ -31,7 +31,6 @@ object SensorReadingsProducer {
     // Random generator
     val random = new Random()
 
-
     // Function to create a SensorReading message
     def createSensorReading(sensorId: Int, timestamp: Long, temperature: Float, humidity: Float): SensorReading = {
       SensorReading(sensorId = sensorId, timestamp = timestamp, temperature = temperature, humidity = humidity)
@@ -45,14 +44,19 @@ object SensorReadingsProducer {
       val humidity = random.nextFloat() * 100            // Humidity between 0 and 100
 
       val sensorReading = createSensorReading(sensorId, timestamp, temperature, humidity)
+      val message = s"""{
+                          "sensorId": ${sensorReading.sensorId},
+                          "timestamp": ${sensorReading.timestamp},
+                          "temperature": ${sensorReading.temperature},
+                          "humidity": ${sensorReading.humidity}
+                        }"""
       val sensorReadingJson = sensorReading.asJson.noSpaces
-      println(s"Generated Record: $sensorReading") // Debugging
-
+      println(s"SensorData: $sensorReading") // Debugging
       new ProducerRecord[String, String](topic,sensorReadingJson)
     }
 
     // Generate and stream sensor readings to Kafka
-    val sensorReadings = Source.tick(0.seconds, 100.milliseconds, ())
+    val sensorReadings = Source.tick(0.seconds, 2.seconds, ())
       .map { _ => buildRecord() }
 
     // Run the Kafka producer
