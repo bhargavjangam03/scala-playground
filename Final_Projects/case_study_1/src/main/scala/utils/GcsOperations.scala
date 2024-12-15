@@ -20,6 +20,23 @@ object GcsOperations {
   val gsAggregationJsonDataParentPath = "gs://bhargav-assignments/final_project/case_study_1/aggregated/json"
 
 
+  def validateSensorData(sensorReadingsDF: DataFrame): DataFrame = {
+    // Apply validation filters on sensor data
+    val validatedDF = sensorReadingsDF.filter(
+      col("sensorId").isNotNull &&
+        col("timestamp").isNotNull &&
+        col("temperature").isNotNull &&
+        col("humidity").isNotNull &&
+        col("sensorId").cast("int").isNotNull &&
+        col("timestamp").cast("int").isNotNull &&
+        col("temperature").cast("float").isNotNull &&
+        col("humidity").cast("float").isNotNull &&
+        col("temperature").between(-50, 150) &&
+        col("humidity").between(0, 100)
+    )
+    validatedDF
+  }
+
   def processBatchDataAndStore(spark: SparkSession, batchDF: DataFrame, currentProcessingTime: LocalDateTime): Unit = {
     import spark.implicits._
 
