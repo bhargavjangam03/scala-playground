@@ -34,7 +34,7 @@ object SensorController {
 
   def main(args: Array[String]): Unit = {
     val route: Route = concat(
-      path("api"/"sensor"/"aggregated") {
+      path("api" / "aggregated-data") {
         get {
           onComplete(Future {
             fetchAggregatedMetrics(spark)
@@ -49,7 +49,7 @@ object SensorController {
           }
         }
       },
-      path("api"/"sensor"/"aggregated"/ Segment) { sensorId =>
+      path("api" / "aggregated-data"/ Segment) { sensorId =>
         get {
           onComplete(Future {
             fetchAggregatedMetricsBySensorId(spark, sensorId.toInt)
